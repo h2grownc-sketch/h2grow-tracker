@@ -167,7 +167,7 @@ export default function MapView({ jobs, onSelect }) {
     locatedJobs.forEach((j) => {
       const g = j._geo;
       const st = getStage(j.checks, j.serviceType, soilFlag(j));
-      const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
+      const next = getNextAction(j.checks, j.serviceType, soilFlag(j), j);
       const alert = getAlertMsg(j);
       const ready = j.checks?.approved && !j.checks?.scheduled;
 
@@ -289,7 +289,7 @@ export default function MapView({ jobs, onSelect }) {
           <div className="map-section-label">On Map ({locatedJobs.length})</div>
           {locatedJobs.map((j) => {
             const st = getStage(j.checks, j.serviceType, soilFlag(j));
-            const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
+            const next = getNextAction(j.checks, j.serviceType, soilFlag(j), j);
             const alert = getAlertMsg(j);
             const isHL = highlighted === j.id;
             return (

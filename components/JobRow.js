@@ -7,7 +7,7 @@ export default function JobRow({ job, onSelect, onQuickAdvance, showDaysWaiting 
   const stage = job.isDead
     ? { label: "Dead", color: "#999" }
     : getStage(job.checks, job.serviceType, sf);
-  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType, sf);
+  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType, sf, job);
   const alert = getAlertMsg(job);
   const waitDays = daysInStage(job);
 

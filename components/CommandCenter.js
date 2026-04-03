@@ -53,7 +53,7 @@ export default function CommandCenter({
   const yourActionGroups = useMemo(() => {
     return ACTION_GROUPS.map((group) => {
       const jobs = activeJobs.filter((j) => {
-        const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
+        const next = getNextAction(j.checks, j.serviceType, soilFlag(j), j);
         return next && group.keys.has(next.key);
       });
       return { ...group, jobs };

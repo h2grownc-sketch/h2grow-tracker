@@ -29,7 +29,7 @@ export default function JobCard({ job, onSelect, onQuickAdvance }) {
   const stage = job.isDead
     ? { label: "Dead", color: "#999" }
     : getStage(job.checks, job.serviceType, sf);
-  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType, sf);
+  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType, sf, job);
   const alert = getAlertMsg(job);
   const stageDays = daysInStage(job);
   const city = job.city || "";
