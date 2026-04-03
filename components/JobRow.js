@@ -3,24 +3,27 @@
 import { getStage, getNextAction, getAlertMsg, daysInStage } from "../lib/jobUtils";
 
 export default function JobRow({ job, onSelect, onQuickAdvance, showDaysWaiting }) {
-  const stage = getStage(job.checks);
-  const next = getNextAction(job.checks);
+  const stage = job.isDead
+    ? { label: "Dead", color: "#999" }
+    : getStage(job.checks, job.serviceType);
+  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType);
   const alert = getAlertMsg(job);
   const waitDays = daysInStage(job);
-  const isDone = job.checks?.followUp90;
 
   return (
     <div
       onClick={() => onSelect(job)}
       className="job-row"
-      style={{ borderLeftColor: stage.color }}
+      style={{ borderLeftColor: stage.color, opacity: job.isDead ? 0.5 : 1 }}
     >
       <div className="job-row-main">
         <div className="job-row-left">
           <span className="job-row-name">{job.customerName || "No Name"}</span>
           <span className="job-row-meta">
             {job.serviceType && <span>{job.serviceType}</span>}
-            {job.address && <span className="job-row-addr">{job.address}</span>}
+            {(job.city || job.address) && (
+              <span className="job-row-addr">{job.city || job.address}</span>
+            )}
             {showDaysWaiting && waitDays !== null && (
               <span
                 style={{
@@ -34,7 +37,7 @@ export default function JobRow({ job, onSelect, onQuickAdvance, showDaysWaiting 
           </span>
         </div>
         <div className="job-row-right">
-          {next && !isDone && onQuickAdvance && (
+          {next && !job.isDead && onQuickAdvance && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -47,21 +50,27 @@ export default function JobRow({ job, onSelect, onQuickAdvance, showDaysWaiting 
           )}
           <span
             className="job-row-stage"
-            style={{
-              background: stage.color + "22",
-              color: stage.color,
-            }}
+            style={{ background: stage.color + "22", color: stage.color }}
           >
-            {stage.icon}
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: stage.color,
+                display: "inline-block",
+              }}
+            />
           </span>
         </div>
       </div>
-      {next && !isDone && (
-        <div className="job-row-next">Next: {next.label}</div>
+      {next && !job.isDead && (
+        <div className="job-row-next">
+          <span style={{ color: "var(--warning)", fontWeight: 700, fontSize: 10 }}>NEXT</span>{" "}
+          {next.label}
+        </div>
       )}
-      {alert && (
-        <div className="job-row-alert">{alert}</div>
-      )}
+      {alert && <div className="job-row-alert">{alert}</div>}
     </div>
   );
 }

@@ -7,13 +7,11 @@ export default function CheckItem({ item, checked, onChange }) {
         display: "flex",
         alignItems: "center",
         gap: 10,
-        padding: "8px 4px",
-        borderBottom: "1px solid var(--border)",
+        padding: "9px 8px",
         cursor: "pointer",
-        background: checked ? "#5CBF2A18" : "transparent",
-        borderRadius: 4,
-        marginBottom: 1,
-        transition: "background 0.2s",
+        background: checked ? "#4CAF5008" : "transparent",
+        borderRadius: 6,
+        borderBottom: "1px solid var(--border-light)",
         fontSize: 15,
       }}
     >
@@ -32,7 +30,7 @@ export default function CheckItem({ item, checked, onChange }) {
         style={{
           color: checked ? "var(--success)" : "var(--text-primary)",
           textDecoration: checked ? "line-through" : "none",
-          letterSpacing: "0.3px",
+          opacity: checked ? 0.7 : 1,
         }}
       >
         {item.label}

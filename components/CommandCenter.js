@@ -6,12 +6,10 @@ import {
   getStage,
   getAlertMsg,
   getUrgency,
-  getNextAction,
-  daysSince,
+  isHydro,
 } from "../lib/jobUtils";
 
-// Collapsible dashboard section
-function Section({ title, count, color, icon, children, defaultOpen = true }) {
+function Section({ title, count, color, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   if (count === 0) return null;
   return (
@@ -20,7 +18,7 @@ function Section({ title, count, color, icon, children, defaultOpen = true }) {
         <div className="cc-section-title">
           <span className="cc-section-dot" style={{ background: color }} />
           <span>{title}</span>
-          <span className="cc-section-count" style={{ background: color + "33", color }}>
+          <span className="cc-section-count" style={{ background: color + "22", color }}>
             {count}
           </span>
         </div>
@@ -42,9 +40,6 @@ export default function CommandCenter({
   onNew,
   onSwitchTab,
 }) {
-  // === Derived data — all read-only from existing jobs array ===
-
-  // Needs Attention: jobs with active alerts, sorted by urgency
   const needsAttention = useMemo(
     () =>
       activeJobs
@@ -53,7 +48,6 @@ export default function CommandCenter({
     [activeJobs]
   );
 
-  // Waiting On Soil: samples mailed but results not received
   const waitingSoil = useMemo(
     () =>
       activeJobs.filter(
@@ -62,7 +56,6 @@ export default function CommandCenter({
     [activeJobs]
   );
 
-  // Waiting On Estimate Approval: quote sent but not approved
   const waitingEstimate = useMemo(
     () =>
       activeJobs.filter(
@@ -71,7 +64,6 @@ export default function CommandCenter({
     [activeJobs]
   );
 
-  // Ready to Move: approved but not yet scheduled
   const readyToMove = useMemo(
     () =>
       activeJobs.filter(
@@ -80,7 +72,6 @@ export default function CommandCenter({
     [activeJobs]
   );
 
-  // This Week: jobs scheduled within current Mon-Sun
   const thisWeek = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -98,30 +89,24 @@ export default function CommandCenter({
           j.scheduledDate >= monStr &&
           j.scheduledDate <= sunStr &&
           j.checks?.scheduled &&
-          !j.checks?.followUp90
+          !j.isDead
       )
       .sort((a, b) => (a.scheduledDate > b.scheduledDate ? 1 : -1));
   }, [jobs]);
 
-  // Recently Updated: newest jobs by dateCreated, top 5
   const recentlyUpdated = useMemo(
     () =>
       [...activeJobs]
-        .sort((a, b) => {
-          const da = new Date(b.dateCreated || 0).getTime();
-          const db = new Date(a.dateCreated || 0).getTime();
-          return da - db;
-        })
+        .sort((a, b) => new Date(b.dateCreated || 0) - new Date(a.dateCreated || 0))
         .slice(0, 5),
     [activeJobs]
   );
 
-  // Follow-up overdue count (subset of needsAttention)
   const overdueCount = useMemo(
     () =>
       activeJobs.filter((j) => {
         const msg = getAlertMsg(j);
-        return msg && (msg.includes("overdue") || msg.includes("not contacted") || msg.includes("stale"));
+        return msg && (msg.includes("overdue") || msg.includes("Not contacted") || msg.includes("stale"));
       }).length,
     [activeJobs]
   );
@@ -130,72 +115,34 @@ export default function CommandCenter({
     <div>
       {/* KPI Strip */}
       <div className="cc-kpi-strip">
-        <div className="cc-kpi" onClick={() => onSwitchTab("pipeline")}>
-          <div className="cc-kpi-value" style={{ color: "var(--h2-blue)" }}>
-            {activeJobs.length}
-          </div>
+        <div className="cc-kpi" onClick={() => onSwitchTab("jobs")}>
+          <div className="cc-kpi-value" style={{ color: "var(--info)" }}>{activeJobs.length}</div>
           <div className="cc-kpi-label">Active</div>
         </div>
         <div className="cc-kpi">
-          <div className="cc-kpi-value" style={{ color: "var(--grow-green)" }}>
-            {scheduled.length}
-          </div>
+          <div className="cc-kpi-value" style={{ color: "var(--grow-green)" }}>{scheduled.length}</div>
           <div className="cc-kpi-label">Scheduled</div>
         </div>
         <div className="cc-kpi">
-          <div
-            className="cc-kpi-value"
-            style={{ color: overdueCount > 0 ? "var(--danger)" : "var(--text-muted)" }}
-          >
-            {overdueCount}
-          </div>
+          <div className="cc-kpi-value" style={{ color: overdueCount > 0 ? "var(--danger)" : "var(--text-muted)" }}>{overdueCount}</div>
           <div className="cc-kpi-label">Overdue</div>
         </div>
         <div className="cc-kpi">
-          <div className="cc-kpi-value" style={{ color: "var(--warning)" }}>
-            ${pipelineValue.toLocaleString()}
-          </div>
+          <div className="cc-kpi-value" style={{ color: "var(--warning)" }}>${pipelineValue.toLocaleString()}</div>
           <div className="cc-kpi-label">Pipeline</div>
         </div>
       </div>
 
-      {/* Needs Attention */}
-      <Section
-        title="NEEDS ATTENTION"
-        count={needsAttention.length}
-        color="var(--danger)"
-        icon=""
-      >
+      <Section title="NEEDS ATTENTION" count={needsAttention.length} color="var(--danger)">
         {needsAttention.map((j) => (
-          <JobRow
-            key={j.id}
-            job={j}
-            onSelect={onSelect}
-            onQuickAdvance={onQuickAdvance}
-          />
+          <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} />
         ))}
       </Section>
 
-      {/* Waiting On */}
-      <Section
-        title="WAITING ON"
-        count={waitingSoil.length + waitingEstimate.length}
-        color="var(--warning)"
-        icon=""
-      >
-        {waitingSoil.length > 0 && (
-          <div className="cc-subsection-label">
-            Soil Samples ({waitingSoil.length})
-          </div>
-        )}
+      <Section title="WAITING ON" count={waitingSoil.length + waitingEstimate.length} color="var(--warning)">
+        {waitingSoil.length > 0 && <div className="cc-subsection-label">Soil Samples ({waitingSoil.length})</div>}
         {waitingSoil.map((j) => (
-          <JobRow
-            key={j.id}
-            job={j}
-            onSelect={onSelect}
-            onQuickAdvance={onQuickAdvance}
-            showDaysWaiting
-          />
+          <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} showDaysWaiting />
         ))}
         {waitingEstimate.length > 0 && (
           <div className="cc-subsection-label" style={{ marginTop: waitingSoil.length > 0 ? 8 : 0 }}>
@@ -203,64 +150,24 @@ export default function CommandCenter({
           </div>
         )}
         {waitingEstimate.map((j) => (
-          <JobRow
-            key={j.id}
-            job={j}
-            onSelect={onSelect}
-            onQuickAdvance={onQuickAdvance}
-            showDaysWaiting
-          />
+          <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} showDaysWaiting />
         ))}
       </Section>
 
-      {/* Ready to Move */}
-      <Section
-        title="READY TO MOVE"
-        count={readyToMove.length}
-        color="var(--success)"
-        icon=""
-      >
+      <Section title="READY TO MOVE" count={readyToMove.length} color="var(--success)">
         {readyToMove.map((j) => (
-          <JobRow
-            key={j.id}
-            job={j}
-            onSelect={onSelect}
-            onQuickAdvance={onQuickAdvance}
-          />
+          <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} />
         ))}
       </Section>
 
-      {/* This Week */}
-      <Section
-        title="THIS WEEK"
-        count={thisWeek.length}
-        color="var(--h2-blue)"
-        icon=""
-      >
+      <Section title="THIS WEEK" count={thisWeek.length} color="var(--h2-blue)">
         {thisWeek.map((j) => {
-          const dayLabel = new Date(j.scheduledDate + "T00:00:00").toLocaleDateString(
-            "en-US",
-            { weekday: "short", month: "short", day: "numeric" }
-          );
+          const dayLabel = new Date(j.scheduledDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
           return (
             <div key={j.id}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "var(--h2-blue)",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  marginTop: 4,
-                  marginBottom: 2,
-                  marginLeft: 4,
-                  fontFamily: "var(--heading-font)",
-                }}
-              >
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--h2-blue)", textTransform: "uppercase", letterSpacing: "1px", marginTop: 4, marginBottom: 2, marginLeft: 4, fontFamily: "var(--heading-font)" }}>
                 {dayLabel}
-                {!j.checks?.depositReceived && (
-                  <span style={{ color: "var(--danger)", marginLeft: 8 }}>No deposit</span>
-                )}
+                {!j.checks?.depositReceived && <span style={{ color: "var(--danger)", marginLeft: 8 }}>No deposit</span>}
               </div>
               <JobRow job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} />
             </div>
@@ -268,14 +175,7 @@ export default function CommandCenter({
         })}
       </Section>
 
-      {/* Recently Updated */}
-      <Section
-        title="RECENTLY ADDED"
-        count={recentlyUpdated.length}
-        color="var(--text-secondary)"
-        icon=""
-        defaultOpen={false}
-      >
+      <Section title="RECENTLY ADDED" count={recentlyUpdated.length} color="var(--text-secondary)" defaultOpen={false}>
         {recentlyUpdated.map((j) => (
           <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} />
         ))}
@@ -283,47 +183,17 @@ export default function CommandCenter({
 
       {/* Quick Actions */}
       <div className="cc-quick-actions">
-        <button className="cc-action-btn cc-action-primary" onClick={onNew}>
-          + New Lead
-        </button>
-        <button
-          className="cc-action-btn cc-action-secondary"
-          onClick={() => onSwitchTab("pipeline")}
-        >
-          View Pipeline
-        </button>
-        <button
-          className="cc-action-btn cc-action-secondary"
-          onClick={() => onSwitchTab("schedule")}
-        >
-          View Schedule
-        </button>
+        <button className="cc-action-btn cc-action-primary" onClick={onNew}>+ New Lead</button>
+        <button className="cc-action-btn cc-action-secondary" onClick={() => onSwitchTab("jobs")}>All Jobs</button>
+        <button className="cc-action-btn cc-action-secondary" onClick={() => onSwitchTab("schedule")}>Schedule</button>
       </div>
 
-      {/* Empty state */}
       {activeJobs.length === 0 && (
         <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
-          <img src="/logo.jpg" alt="H2 Grow" style={{ height: 48, borderRadius: 4, marginBottom: 10, opacity: 0.5 }} />
-          <div
-            style={{
-              fontFamily: "var(--heading-font)",
-              fontWeight: 500,
-              fontSize: 18,
-              color: "var(--text-secondary)",
-              textTransform: "uppercase",
-            }}
-          >
-            No active jobs
-          </div>
+          <img src="/logo.jpg" alt="H2 Grow" style={{ height: 48, borderRadius: 4, marginBottom: 10, opacity: 0.3 }} />
+          <div style={{ fontFamily: "var(--heading-font)", fontWeight: 500, fontSize: 18, textTransform: "uppercase" }}>No active jobs</div>
           <div style={{ fontSize: 14, marginTop: 4 }}>
-            Tap{" "}
-            <span
-              style={{ color: "var(--accent)", fontWeight: 700, cursor: "pointer" }}
-              onClick={onNew}
-            >
-              + NEW LEAD
-            </span>{" "}
-            to get started
+            Tap <span style={{ color: "var(--accent)", fontWeight: 700, cursor: "pointer" }} onClick={onNew}>+ NEW LEAD</span> to get started
           </div>
         </div>
       )}

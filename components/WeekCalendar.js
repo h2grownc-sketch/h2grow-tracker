@@ -16,7 +16,7 @@ export default function WeekCalendar({ jobs, onSelect }) {
     return d;
   });
   const scheduledJobs = jobs.filter(
-    (j) => j.scheduledDate && j.checks.scheduled && !j.checks.followUp90
+    (j) => j.scheduledDate && j.checks?.scheduled && !j.isDead
   );
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const weekLabel = `${days[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${days[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
@@ -28,21 +28,21 @@ export default function WeekCalendar({ jobs, onSelect }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 12,
+          marginBottom: 14,
         }}
       >
         <button
           onClick={() => setWeekOffset((w) => w - 1)}
           style={{
-            background: "none",
+            background: "var(--white)",
             border: "1px solid var(--border)",
             color: "var(--text-secondary)",
-            borderRadius: 4,
-            padding: "6px 12px",
+            borderRadius: 6,
+            padding: "7px 14px",
             fontSize: 14,
           }}
         >
-          ← Prev
+          Prev
         </button>
         <div
           style={{
@@ -58,27 +58,26 @@ export default function WeekCalendar({ jobs, onSelect }) {
         <button
           onClick={() => setWeekOffset((w) => w + 1)}
           style={{
-            background: "none",
+            background: "var(--white)",
             border: "1px solid var(--border)",
             color: "var(--text-secondary)",
-            borderRadius: 4,
-            padding: "6px 12px",
+            borderRadius: 6,
+            padding: "7px 14px",
             fontSize: 14,
           }}
         >
-          Next →
+          Next
         </button>
       </div>
       {weekOffset !== 0 && (
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
           <button
             onClick={() => setWeekOffset(0)}
             style={{
               background: "none",
               border: "none",
-              color: "var(--h2-blue)",
+              color: "var(--info)",
               fontSize: 13,
-              textDecoration: "underline",
             }}
           >
             Back to this week
@@ -94,12 +93,10 @@ export default function WeekCalendar({ jobs, onSelect }) {
             key={i}
             style={{
               marginBottom: 6,
-              background: isToday ? "#5CBF2A10" : "transparent",
-              borderRadius: 6,
-              padding: "8px 10px",
-              border: isToday
-                ? "1px solid #5CBF2A40"
-                : "1px solid var(--border)",
+              background: isToday ? "#4CAF5008" : "var(--white)",
+              borderRadius: 8,
+              padding: "10px 12px",
+              border: isToday ? "1.5px solid #4CAF5040" : "1px solid var(--card-border)",
             }}
           >
             <div
@@ -107,22 +104,17 @@ export default function WeekCalendar({ jobs, onSelect }) {
                 fontFamily: "var(--heading-font)",
                 fontSize: 13,
                 fontWeight: 600,
-                color: isToday ? "var(--accent)" : "var(--text-secondary)",
+                color: isToday ? "var(--accent)" : "var(--text-muted)",
                 textTransform: "uppercase",
                 letterSpacing: "1.5px",
-                marginBottom: dayJobs.length ? 6 : 0,
+                marginBottom: dayJobs.length ? 8 : 0,
               }}
             >
-              {dayNames[i]} {day.getDate()} {isToday && "• TODAY"}
+              {dayNames[i]} {day.getDate()}{" "}
+              {isToday && <span style={{ color: "var(--accent)" }}>— Today</span>}
             </div>
             {dayJobs.length === 0 && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  fontStyle: "italic",
-                }}
-              >
+              <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
                 No jobs
               </div>
             )}
@@ -131,34 +123,40 @@ export default function WeekCalendar({ jobs, onSelect }) {
                 key={j.id}
                 onClick={() => onSelect(j)}
                 style={{
-                  background: "var(--card-bg)",
+                  background: "var(--light-bg)",
                   borderRadius: 6,
-                  padding: "8px 12px",
+                  padding: "10px 12px",
                   marginBottom: 4,
                   cursor: "pointer",
-                  borderLeft: "3px solid var(--grow-lime)",
+                  borderLeft: "3px solid var(--accent)",
                 }}
               >
                 <div
                   style={{
                     fontFamily: "var(--heading-font)",
                     fontWeight: 600,
-                    fontSize: 14,
+                    fontSize: 15,
                     textTransform: "uppercase",
                   }}
                 >
                   {j.customerName}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  {j.serviceType} {j.address && `• ${j.address}`}{" "}
-                  {j.checks.depositReceived ? (
-                    <span style={{ color: "var(--success)", marginLeft: 8 }}>
-                      Deposit ✓
-                    </span>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
+                    marginTop: 2,
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>{j.serviceType}</span>
+                  {j.city && <span>{j.city}</span>}
+                  {j.checks?.depositReceived ? (
+                    <span style={{ color: "var(--success)", fontWeight: 600 }}>Deposit received</span>
                   ) : (
-                    <span style={{ color: "var(--danger)", marginLeft: 8 }}>
-                      No deposit
-                    </span>
+                    <span style={{ color: "var(--danger)", fontWeight: 600 }}>No deposit</span>
                   )}
                 </div>
               </div>
