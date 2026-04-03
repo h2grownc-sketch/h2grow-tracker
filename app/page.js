@@ -54,6 +54,14 @@ export default function Dashboard() {
   const [offline, setOffline] = useState(false);
   const [stageFilter, setStageFilter] = useState("All");
   const [serviceFilter, setServiceFilter] = useState("All");
+  const [smartFilters, setSmartFilters] = useState({
+    overdue: false,
+    readyToSchedule: false,
+    waitingSoil: false,
+    waitingApproval: false,
+  });
+  const [assignedFilter, setAssignedFilter] = useState("");
+  const [countyFilter, setCountyFilter] = useState("");
 
   const loadData = useCallback(async () => {
     if (!authed) return;
@@ -129,7 +137,7 @@ export default function Dashboard() {
     (j) => j.scheduledDate && j.checks?.scheduled && !j.isDead
   );
 
-  // Filters
+  // Filters — including smart filters
   const filteredJobs = useMemo(() => {
     let result = activeJobs;
     if (stageFilter !== "All") {
@@ -138,25 +146,52 @@ export default function Dashboard() {
     if (serviceFilter !== "All") {
       result = result.filter((j) => j.serviceType === serviceFilter);
     }
+    if (smartFilters.overdue) {
+      result = result.filter((j) => getAlertMsg(j));
+    }
+    if (smartFilters.readyToSchedule) {
+      result = result.filter((j) => j.checks?.approved && !j.checks?.scheduled);
+    }
+    if (smartFilters.waitingSoil) {
+      result = result.filter((j) => j.checks?.soilMailed && !j.checks?.resultsReceived);
+    }
+    if (smartFilters.waitingApproval) {
+      result = result.filter((j) => j.checks?.quoteSent && !j.checks?.approved);
+    }
+    if (assignedFilter) {
+      const af = assignedFilter.toLowerCase();
+      result = result.filter((j) => (j.assignedTo || "").toLowerCase().includes(af));
+    }
+    if (countyFilter) {
+      const cf = countyFilter.toLowerCase();
+      result = result.filter((j) => (j.county || "").toLowerCase().includes(cf));
+    }
     return result;
-  }, [activeJobs, stageFilter, serviceFilter]);
+  }, [activeJobs, stageFilter, serviceFilter, smartFilters, assignedFilter, countyFilter]);
 
-  const stageCounts = useMemo(() => {
-    const counts = {};
-    activeJobs.forEach((j) => {
-      const label = getStage(j.checks, j.serviceType).label;
-      counts[label] = (counts[label] || 0) + 1;
-    });
-    return counts;
-  }, [activeJobs]);
+  // Active filter count for badge
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (stageFilter !== "All") c++;
+    if (serviceFilter !== "All") c++;
+    if (smartFilters.overdue) c++;
+    if (smartFilters.readyToSchedule) c++;
+    if (smartFilters.waitingSoil) c++;
+    if (smartFilters.waitingApproval) c++;
+    if (assignedFilter) c++;
+    if (countyFilter) c++;
+    return c;
+  }, [stageFilter, serviceFilter, smartFilters, assignedFilter, countyFilter]);
 
-  const serviceCounts = useMemo(() => {
-    const counts = {};
-    activeJobs.forEach((j) => {
-      if (j.serviceType) counts[j.serviceType] = (counts[j.serviceType] || 0) + 1;
-    });
-    return counts;
-  }, [activeJobs]);
+  // Split filtered jobs into overdue vs normal
+  const overdueJobs = useMemo(
+    () => filteredJobs.filter((j) => getAlertMsg(j)),
+    [filteredJobs]
+  );
+  const normalJobs = useMemo(
+    () => filteredJobs.filter((j) => !getAlertMsg(j)),
+    [filteredJobs]
+  );
 
   // Pipeline $ includes sitePrepAmount
   const pipelineValue = useMemo(
@@ -346,23 +381,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Search — only on Jobs tab */}
-        {view === "jobs" && (
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search jobs..."
-            style={{
-              background: "var(--light-bg)",
-              border: "1px solid var(--border)",
-              letterSpacing: "0.5px",
-              fontSize: 14,
-              marginBottom: 6,
-              borderRadius: 8,
-            }}
-          />
-        )}
-
         {/* Tabs */}
         <div style={{ display: "flex", overflowX: "auto", WebkitOverflowScrolling: "touch", gap: 2 }}>
           {TABS.map((t) => (
@@ -409,55 +427,31 @@ export default function Dashboard() {
         {view === "jobs" && (
           <>
             <FilterBar
+              search={search}
+              setSearch={setSearch}
               stageFilter={stageFilter}
               setStageFilter={setStageFilter}
               serviceFilter={serviceFilter}
               setServiceFilter={setServiceFilter}
-              stageCounts={stageCounts}
-              serviceCounts={serviceCounts}
+              smartFilters={smartFilters}
+              setSmartFilters={setSmartFilters}
+              assignedFilter={assignedFilter}
+              setAssignedFilter={setAssignedFilter}
+              countyFilter={countyFilter}
+              setCountyFilter={setCountyFilter}
+              activeFilterCount={activeFilterCount}
             />
 
-            {(stageFilter !== "All" || serviceFilter !== "All") && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 10,
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                }}
-              >
-                <span>
-                  Showing {filteredJobs.length} of {activeJobs.length} active
-                </span>
-                <button
-                  onClick={() => { setStageFilter("All"); setServiceFilter("All"); }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--info)",
-                    fontSize: 12,
-                    textDecoration: "underline",
-                    cursor: "pointer",
-                  }}
-                >
-                  Clear filters
-                </button>
+            {/* Filter summary */}
+            {activeFilterCount > 0 && (
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                Showing {filteredJobs.length} of {activeJobs.length} active jobs
               </div>
             )}
 
-            {filteredJobs.length === 0 && !search && stageFilter === "All" && serviceFilter === "All" ? (
+            {filteredJobs.length === 0 && !search && activeFilterCount === 0 ? (
               <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-                <div
-                  style={{
-                    fontFamily: "var(--heading-font)",
-                    fontWeight: 500,
-                    fontSize: 20,
-                    textTransform: "uppercase",
-                    marginBottom: 6,
-                  }}
-                >
+                <div style={{ fontFamily: "var(--heading-font)", fontWeight: 500, fontSize: 20, textTransform: "uppercase", marginBottom: 6 }}>
                   No active jobs
                 </div>
                 <div style={{ fontSize: 14 }}>
@@ -469,45 +463,53 @@ export default function Dashboard() {
                 No jobs match current filters
               </div>
             ) : (
-              filteredJobs.map((j) => (
-                <JobCard key={j.id} job={j} onSelect={setEditing} onQuickAdvance={handleQuickAdvance} />
-              ))
+              <>
+                {/* Overdue section */}
+                {overdueJobs.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="priority-header priority-overdue">
+                      <span>Needs Attention</span>
+                      <span className="priority-count" style={{ background: "var(--danger)", color: "#fff" }}>
+                        {overdueJobs.length}
+                      </span>
+                    </div>
+                    {overdueJobs.map((j) => (
+                      <JobCard key={j.id} job={j} onSelect={setEditing} onQuickAdvance={handleQuickAdvance} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Normal active jobs */}
+                {normalJobs.length > 0 && (
+                  <div>
+                    {overdueJobs.length > 0 && (
+                      <div className="priority-header">
+                        <span>Active</span>
+                        <span className="priority-count">{normalJobs.length}</span>
+                      </div>
+                    )}
+                    {normalJobs.map((j) => (
+                      <JobCard key={j.id} job={j} onSelect={setEditing} onQuickAdvance={handleQuickAdvance} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
+            {/* Completed */}
             {doneJobs.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <button
-                  onClick={() => setShowDone(!showDone)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--text-muted)",
-                    fontFamily: "var(--heading-font)",
-                    fontSize: 13,
-                    textTransform: "uppercase",
-                    letterSpacing: "1.5px",
-                  }}
-                >
+                <button onClick={() => setShowDone(!showDone)} className="section-toggle">
                   Completed ({doneJobs.length}) {showDone ? "−" : "+"}
                 </button>
                 {showDone && doneJobs.map((j) => <JobCard key={j.id} job={j} onSelect={setEditing} />)}
               </div>
             )}
 
+            {/* Dead Leads */}
             {deadJobs.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <button
-                  onClick={() => setShowDead(!showDead)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--text-muted)",
-                    fontFamily: "var(--heading-font)",
-                    fontSize: 13,
-                    textTransform: "uppercase",
-                    letterSpacing: "1.5px",
-                  }}
-                >
+              <div style={{ marginTop: 8 }}>
+                <button onClick={() => setShowDead(!showDead)} className="section-toggle">
                   Dead Leads ({deadJobs.length}) {showDead ? "−" : "+"}
                 </button>
                 {showDead && deadJobs.map((j) => <JobCard key={j.id} job={j} onSelect={setEditing} />)}
