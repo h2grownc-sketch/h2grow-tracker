@@ -6,7 +6,9 @@ import {
   getStage,
   getAlertMsg,
   getUrgency,
+  getNextAction,
   isHydro,
+  soilFlag,
 } from "../lib/jobUtils";
 
 function Section({ title, count, color, children, defaultOpen = true }) {
@@ -40,6 +42,25 @@ export default function CommandCenter({
   onNew,
   onSwitchTab,
 }) {
+  // Keys where the next action is something YOU must do (not waiting on customer/lab)
+  const YOUR_ACTION_KEYS = new Set([
+    "consultationNeeded", "consultationComplete",
+    "siteVisit", "soilCollected", "soilMailed",
+    "materialsOrdered", "scheduled", "jobComplete",
+    "careSent", "followUp14", "followUp30", "followUp90", "followUp3",
+    "quoteSent", "sitePrepQuoteSent",
+  ]);
+
+  // Jobs where the next step is YOUR action to complete
+  const yourAction = useMemo(
+    () =>
+      activeJobs.filter((j) => {
+        const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
+        return next && YOUR_ACTION_KEYS.has(next.key);
+      }),
+    [activeJobs]
+  );
+
   const needsAttention = useMemo(
     () =>
       activeJobs
@@ -139,7 +160,13 @@ export default function CommandCenter({
         ))}
       </Section>
 
-      <Section title="WAITING ON" count={waitingSoil.length + waitingEstimate.length} color="var(--warning)">
+      <Section title="YOUR ACTION" count={yourAction.length} color="var(--h2-blue)">
+        {yourAction.map((j) => (
+          <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} />
+        ))}
+      </Section>
+
+      <Section title="WAITING ON OTHERS" count={waitingSoil.length + waitingEstimate.length} color="var(--warning)">
         {waitingSoil.length > 0 && <div className="cc-subsection-label">Soil Samples ({waitingSoil.length})</div>}
         {waitingSoil.map((j) => (
           <JobRow key={j.id} job={j} onSelect={onSelect} onQuickAdvance={onQuickAdvance} showDaysWaiting />
