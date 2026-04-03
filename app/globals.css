@@ -480,3 +480,112 @@ button { font-family: var(--heading-font); cursor: pointer; }
   display: block;
   font-family: var(--body-font);
 }
+
+/* ===== Map View ===== */
+.map-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.map-filter-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 12px;
+  font-family: var(--body-font);
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+.map-filter-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-family: var(--heading-font);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.map-filter-check input { accent-color: var(--accent); width: 14px; height: 14px; }
+.map-filter-clear {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--heading-font);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.map-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--heading-font);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.map-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--heading-font);
+  margin-bottom: 6px;
+}
+.map-job-row {
+  background: var(--card-bg);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  border: 1px solid var(--card-border);
+  border-left-width: 4px;
+  transition: box-shadow 0.15s, background 0.15s;
+}
+.map-job-row:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.map-job-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.map-job-name {
+  font-family: var(--heading-font);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.map-job-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  flex-wrap: wrap;
+}
+.map-job-meta span + span::before { content: " · "; }
+.map-job-alert {
+  font-size: 10px;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 2px;
+}
