@@ -18,6 +18,10 @@ import JobDetail from "../components/JobDetail";
 import WeekCalendar from "../components/WeekCalendar";
 import FilterBar from "../components/FilterBar";
 import CommandCenter from "../components/CommandCenter";
+import MapView from "../components/MapView";
+import MaterialsCalc from "../components/MaterialsCalc";
+import QuickRefTab from "../components/QuickRefTab";
+import OpsChecklistTab from "../components/OpsChecklistTab";
 
 const PIN_CODE = "2024";
 
@@ -520,33 +524,10 @@ export default function Dashboard() {
 
         {view === "schedule" && <WeekCalendar jobs={jobs} onSelect={setEditing} />}
 
-        {view === "map" && (
-          <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-            <div style={{ fontFamily: "var(--heading-font)", fontSize: 20, fontWeight: 600, textTransform: "uppercase", marginBottom: 8 }}>Job Map</div>
-            <div style={{ fontSize: 14 }}>Coming in Phase 2</div>
-          </div>
-        )}
-
-        {view === "calc" && (
-          <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-            <div style={{ fontFamily: "var(--heading-font)", fontSize: 20, fontWeight: 600, textTransform: "uppercase", marginBottom: 8 }}>Materials Calculator</div>
-            <div style={{ fontSize: 14 }}>Coming in Phase 2</div>
-          </div>
-        )}
-
-        {view === "ref" && (
-          <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-            <div style={{ fontFamily: "var(--heading-font)", fontSize: 20, fontWeight: 600, textTransform: "uppercase", marginBottom: 8 }}>Quick Reference</div>
-            <div style={{ fontSize: 14 }}>Coming in Phase 2</div>
-          </div>
-        )}
-
-        {view === "ops" && (
-          <div style={{ textAlign: "center", padding: 60, color: "var(--text-muted)" }}>
-            <div style={{ fontFamily: "var(--heading-font)", fontSize: 20, fontWeight: 600, textTransform: "uppercase", marginBottom: 8 }}>Ops Checklists</div>
-            <div style={{ fontSize: 14 }}>Coming in Phase 2</div>
-          </div>
-        )}
+        {view === "map" && <MapView jobs={jobs} onSelect={setEditing} />}
+        {view === "calc" && <MaterialsCalc />}
+        {view === "ref" && <QuickRefTab />}
+        {view === "ops" && <OpsChecklistTab />}
       </div>
 
       {/* Bottom stats */}
