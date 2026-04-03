@@ -12,6 +12,7 @@ import {
   getChecklist,
   isJobDone,
   isHydro,
+  soilFlag,
 } from "../lib/jobUtils";
 import JobCard from "../components/JobCard";
 import JobDetail from "../components/JobDetail";
@@ -145,7 +146,7 @@ export default function Dashboard() {
   const filteredJobs = useMemo(() => {
     let result = activeJobs;
     if (stageFilter !== "All") {
-      result = result.filter((j) => getStage(j.checks, j.serviceType).label === stageFilter);
+      result = result.filter((j) => getStage(j.checks, j.serviceType, soilFlag(j)).label === stageFilter);
     }
     if (serviceFilter !== "All") {
       result = result.filter((j) => j.serviceType === serviceFilter);

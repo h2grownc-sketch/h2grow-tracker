@@ -6,6 +6,7 @@ import {
   getAlertMsg,
   daysInStage,
   isHydro,
+  soilFlag,
 } from "../lib/jobUtils";
 
 function StatusDot({ color, size = 8 }) {
@@ -24,10 +25,11 @@ function StatusDot({ color, size = 8 }) {
 }
 
 export default function JobCard({ job, onSelect, onQuickAdvance }) {
+  const sf = soilFlag(job);
   const stage = job.isDead
     ? { label: "Dead", color: "#999" }
-    : getStage(job.checks, job.serviceType);
-  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType);
+    : getStage(job.checks, job.serviceType, sf);
+  const next = job.isDead ? null : getNextAction(job.checks, job.serviceType, sf);
   const alert = getAlertMsg(job);
   const stageDays = daysInStage(job);
   const city = job.city || "";

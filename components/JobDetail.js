@@ -20,11 +20,12 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setCheck = (k, v) =>
     setForm((f) => ({ ...f, checks: { ...f.checks, [k]: v } }));
+  const soilReq = isHydro(form.serviceType) ? form.soilSamplesRequired !== false : undefined;
   const stage = form.isDead
     ? { label: "Dead", color: "#999" }
-    : getStage(form.checks, form.serviceType);
-  const pct = getProgress(form.checks, form.serviceType);
-  const checklist = getChecklist(form.serviceType).filter((c) => {
+    : getStage(form.checks, form.serviceType, soilReq === false ? false : undefined);
+  const pct = getProgress(form.checks, form.serviceType, soilReq === false ? false : undefined);
+  const checklist = getChecklist(form.serviceType, soilReq === false ? false : undefined).filter((c) => {
     if (c.key === "sitePrepQuoteSent" && !form.requiresSitePrep) return false;
     return true;
   });
@@ -297,83 +298,58 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
           {/* Hydro-specific: Site Prep + Quotes + Soil */}
           {isHydro(form.serviceType) && (
             <>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer",
-                  fontSize: 15,
-                  padding: "6px 0",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.requiresSitePrep}
-                  onChange={(e) => set("requiresSitePrep", e.target.checked)}
-                  style={{ accentColor: "#8B6FC0", width: 18, height: 18 }}
-                />
-                <span
-                  style={{
-                    fontWeight: 600,
-                    color: form.requiresSitePrep ? "#8B6FC0" : "var(--text-secondary)",
-                  }}
-                >
-                  Requires site prep
-                </span>
-              </label>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: form.requiresSitePrep ? "1fr 1fr" : "1fr",
-                  gap: 10,
-                }}
-              >
+              {/* Toggle checkboxes */}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 15, padding: "6px 0" }}>
+                  <input type="checkbox" checked={form.soilSamplesRequired !== false} onChange={(e) => set("soilSamplesRequired", e.target.checked)} style={{ accentColor: "#C48A08", width: 18, height: 18 }} />
+                  <span style={{ fontWeight: 600, color: form.soilSamplesRequired !== false ? "#C48A08" : "var(--text-secondary)" }}>Soil samples required</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 15, padding: "6px 0" }}>
+                  <input type="checkbox" checked={form.requiresSitePrep} onChange={(e) => set("requiresSitePrep", e.target.checked)} style={{ accentColor: "#8B6FC0", width: 18, height: 18 }} />
+                  <span style={{ fontWeight: 600, color: form.requiresSitePrep ? "#8B6FC0" : "var(--text-secondary)" }}>Requires site prep</span>
+                </label>
+              </div>
+
+              {/* Quotes */}
+              <div style={{ display: "grid", gridTemplateColumns: form.requiresSitePrep ? "1fr 1fr" : "1fr", gap: 10 }}>
                 <div>
                   <label style={lbl}>Hydroseed Quote $</label>
-                  <input
-                    value={form.quoteAmount}
-                    onChange={(e) => set("quoteAmount", e.target.value)}
-                    placeholder="$0"
-                  />
+                  <input value={form.quoteAmount} onChange={(e) => set("quoteAmount", e.target.value)} placeholder="$0" />
                 </div>
                 {form.requiresSitePrep && (
                   <div>
                     <label style={lbl}>Site Prep Quote $</label>
-                    <input
-                      value={form.sitePrepAmount || ""}
-                      onChange={(e) => set("sitePrepAmount", e.target.value)}
-                      placeholder="$0"
-                    />
+                    <input value={form.sitePrepAmount || ""} onChange={(e) => set("sitePrepAmount", e.target.value)} placeholder="$0" />
                   </div>
                 )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={lbl}>Soil Test #</label>
-                  <input
-                    value={form.soilTestNumber}
-                    onChange={(e) => set("soilTestNumber", e.target.value)}
-                    placeholder="PS3 #"
-                  />
+
+              {/* Soil test fields — only if soil required */}
+              {form.soilSamplesRequired !== false && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={lbl}>Soil Test #</label>
+                    <input value={form.soilTestNumber} onChange={(e) => set("soilTestNumber", e.target.value)} placeholder="PS3 #" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Mailed</label>
+                    <input value={form.sampleMailedDate} onChange={(e) => set("sampleMailedDate", e.target.value)} type="date" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Quote Sent</label>
+                    <input value={form.quoteSentDate} onChange={(e) => set("quoteSentDate", e.target.value)} type="date" />
+                  </div>
                 </div>
-                <div>
-                  <label style={lbl}>Mailed</label>
-                  <input
-                    value={form.sampleMailedDate}
-                    onChange={(e) => set("sampleMailedDate", e.target.value)}
-                    type="date"
-                  />
+              )}
+              {/* Quote sent date when no soil */}
+              {form.soilSamplesRequired === false && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+                  <div>
+                    <label style={lbl}>Quote Sent</label>
+                    <input value={form.quoteSentDate} onChange={(e) => set("quoteSentDate", e.target.value)} type="date" />
+                  </div>
                 </div>
-                <div>
-                  <label style={lbl}>Quote Sent</label>
-                  <input
-                    value={form.quoteSentDate}
-                    onChange={(e) => set("quoteSentDate", e.target.value)}
-                    type="date"
-                  />
-                </div>
-              </div>
+              )}
             </>
           )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getStage, getNextAction, getAlertMsg, isJobDone } from "../lib/jobUtils";
+import { getStage, getNextAction, getAlertMsg, isJobDone, soilFlag } from "../lib/jobUtils";
 
 // ── NC City coordinates (50+ cities) ──
 const NC_CITIES = {
@@ -130,7 +130,7 @@ export default function MapView({ jobs, onSelect }) {
   const filteredJobs = useMemo(() => {
     let result = activeJobs;
     if (serviceFilter !== "All") result = result.filter((j) => j.serviceType === serviceFilter);
-    if (stageFilter !== "All") result = result.filter((j) => getStage(j.checks, j.serviceType).label === stageFilter);
+    if (stageFilter !== "All") result = result.filter((j) => getStage(j.checks, j.serviceType, soilFlag(j)).label === stageFilter);
     if (showOverdueOnly) result = result.filter((j) => getAlertMsg(j));
     if (showReadyOnly) result = result.filter((j) => j.checks?.approved && !j.checks?.scheduled);
     return result;
@@ -166,8 +166,8 @@ export default function MapView({ jobs, onSelect }) {
     // Add new markers
     locatedJobs.forEach((j) => {
       const g = j._geo;
-      const st = getStage(j.checks, j.serviceType);
-      const next = getNextAction(j.checks, j.serviceType);
+      const st = getStage(j.checks, j.serviceType, soilFlag(j));
+      const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
       const alert = getAlertMsg(j);
       const ready = j.checks?.approved && !j.checks?.scheduled;
 
@@ -288,8 +288,8 @@ export default function MapView({ jobs, onSelect }) {
         <div style={{ marginTop: 12 }}>
           <div className="map-section-label">On Map ({locatedJobs.length})</div>
           {locatedJobs.map((j) => {
-            const st = getStage(j.checks, j.serviceType);
-            const next = getNextAction(j.checks, j.serviceType);
+            const st = getStage(j.checks, j.serviceType, soilFlag(j));
+            const next = getNextAction(j.checks, j.serviceType, soilFlag(j));
             const alert = getAlertMsg(j);
             const isHL = highlighted === j.id;
             return (
