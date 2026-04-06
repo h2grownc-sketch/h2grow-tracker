@@ -23,6 +23,7 @@ import MapView from "../components/MapView";
 import MaterialsCalc from "../components/MaterialsCalc";
 import QuickRefTab from "../components/QuickRefTab";
 import OpsChecklistTab from "../components/OpsChecklistTab";
+import PayTab from "../components/PayTab";
 
 const PIN_CODE = process.env.NEXT_PUBLIC_PIN_CODE || "2024";
 
@@ -218,6 +219,7 @@ export default function Dashboard() {
     { id: "calc", label: "Calc" },
     { id: "ref", label: "Ref" },
     { id: "ops", label: "Ops" },
+    { id: "pay", label: "Pay" },
   ];
 
   // === PIN Screen ===
@@ -529,6 +531,7 @@ export default function Dashboard() {
         {view === "calc" && <MaterialsCalc />}
         {view === "ref" && <QuickRefTab />}
         {view === "ops" && <OpsChecklistTab />}
+        {view === "pay" && <PayTab jobs={jobs} />}
       </div>
 
       {/* Bottom stats */}
