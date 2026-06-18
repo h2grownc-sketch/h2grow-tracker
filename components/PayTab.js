@@ -47,6 +47,7 @@ export default function PayTab({ jobs }) {
   const [formJobId, setFormJobId] = useState("");
   const [formTanks, setFormTanks] = useState(0);
   const [formSkidHours, setFormSkidHours] = useState(0);
+  const [formSoil, setFormSoil] = useState(0);
   const [formNotes, setFormNotes] = useState("");
 
   // Active jobs for the dropdown
@@ -81,19 +82,21 @@ export default function PayTab({ jobs }) {
 
   // Save log
   const handleSave = async () => {
-    if (formTanks === 0 && formSkidHours === 0) return;
+    if (formTanks === 0 && formSkidHours === 0 && formSoil === 0) return;
     setSaving(true);
     await saveProductionLog({
       log_date: formDate,
       job_id: formJobId || null,
       tanks_sprayed: formTanks,
       skid_steer_hours: formSkidHours,
+      soil_samples: formSoil,
       notes: formNotes,
       operator: "Tate Anderson",
       quality_approved: true,
     });
     setFormTanks(0);
     setFormSkidHours(0);
+    setFormSoil(0);
     setFormNotes("");
     setFormJobId("");
     await loadData();
@@ -186,6 +189,10 @@ export default function PayTab({ jobs }) {
             <span>Skid steer ({currentPay.totalSkidHours} hrs x ${PAY_RATES.PER_SKID_HOUR})</span>
             <span>{formatCurrency(currentPay.skidSteerPay)}</span>
           </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "var(--text-secondary)" }}>
+            <span>Soil samples ({currentPay.totalSoilSamples} x ${PAY_RATES.PER_SOIL_SAMPLE})</span>
+            <span>{formatCurrency(currentPay.soilSamplePay)}</span>
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 0", fontWeight: 700, fontSize: 18, fontFamily: "var(--heading-font)", borderTop: "1px solid var(--border-light)", marginTop: 6 }}>
             <span>Total</span>
             <span style={{ color: "var(--accent)" }}>{formatCurrency(currentPay.totalPay)}</span>
@@ -241,6 +248,20 @@ export default function PayTab({ jobs }) {
           </div>
         </div>
 
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div>
+            <label style={lbl}>Soil Samples Collected</label>
+            <input
+              type="number"
+              min="0"
+              max="50"
+              value={formSoil}
+              onChange={(e) => setFormSoil(parseInt(e.target.value) || 0)}
+              style={{ fontSize: 18, fontWeight: 700, textAlign: "center", padding: "12px", fontFamily: "var(--heading-font)" }}
+            />
+          </div>
+        </div>
+
         <div style={{ marginBottom: 10 }}>
           <label style={lbl}>Notes</label>
           <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Optional notes..." />
@@ -248,13 +269,13 @@ export default function PayTab({ jobs }) {
 
         <button
           onClick={handleSave}
-          disabled={saving || (formTanks === 0 && formSkidHours === 0)}
+          disabled={saving || (formTanks === 0 && formSkidHours === 0 && formSoil === 0)}
           style={{
             width: "100%",
             padding: "13px 0",
             borderRadius: 8,
             border: "none",
-            background: (formTanks === 0 && formSkidHours === 0) ? "var(--border)" : "linear-gradient(135deg,#4CAF50,#5CBF2A)",
+            background: (formTanks === 0 && formSkidHours === 0 && formSoil === 0) ? "var(--border)" : "linear-gradient(135deg,#4CAF50,#5CBF2A)",
             color: "#fff",
             fontWeight: 600,
             fontSize: 14,
@@ -298,6 +319,9 @@ export default function PayTab({ jobs }) {
                   )}
                   {log.skid_steer_hours > 0 && (
                     <span style={{ color: "var(--h2-blue)", fontWeight: 600 }}>{log.skid_steer_hours} hrs</span>
+                  )}
+                  {log.soil_samples > 0 && (
+                    <span style={{ color: "var(--warning)", fontWeight: 600 }}>{log.soil_samples} soil</span>
                   )}
                   <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{jobName(log.job_id)}</span>
                 </div>
@@ -368,7 +392,7 @@ export default function PayTab({ jobs }) {
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{formatWeekLabel(pp.week_start, pp.week_end)}</div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                      {pp.total_tanks} tanks | {pp.total_skid_hours} skid hrs
+                      {pp.total_tanks} tanks | {pp.total_skid_hours} skid hrs{pp.total_soil_samples > 0 ? ` | ${pp.total_soil_samples} soil` : ""}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -404,6 +428,7 @@ export default function PayTab({ jobs }) {
                         <span style={{ display: "flex", gap: 8 }}>
                           {dl.tanks_sprayed > 0 && <span style={{ color: "var(--accent)" }}>{dl.tanks_sprayed}T</span>}
                           {dl.skid_steer_hours > 0 && <span style={{ color: "var(--h2-blue)" }}>{dl.skid_steer_hours}h</span>}
+                          {dl.soil_samples > 0 && <span style={{ color: "var(--warning)" }}>{dl.soil_samples}S</span>}
                           {dl.quality_approved === false && <span style={{ color: "var(--danger)", fontSize: 11 }}>flagged</span>}
                         </span>
                       </div>
@@ -423,6 +448,11 @@ export default function PayTab({ jobs }) {
                       <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-secondary)" }}>
                         <span>Skid ({pp.total_skid_hours}h)</span><span>{formatCurrency(pp.skid_steer_pay)}</span>
                       </div>
+                      {pp.total_soil_samples > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-secondary)" }}>
+                          <span>Soil ({pp.total_soil_samples})</span><span>{formatCurrency(pp.soil_sample_pay)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Status actions */}
@@ -482,6 +512,9 @@ export default function PayTab({ jobs }) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "var(--text-secondary)" }}>
               <span>Skid steer production</span><span>{formatCurrency(seasonTotals.totalSkidSteerPay)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", color: "var(--text-secondary)" }}>
+              <span>Soil samples ({seasonTotals.totalSoilSamples})</span><span>{formatCurrency(seasonTotals.totalSoilSamplePay)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 0", fontWeight: 700, fontSize: 16, fontFamily: "var(--heading-font)", borderTop: "1px solid var(--border-light)", marginTop: 4 }}>
               <span>Total earned</span>
