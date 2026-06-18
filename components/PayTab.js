@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import ProgressBar from "./ProgressBar";
 import {
   PAY_RATES,
+  OPERATOR_NAME,
   calculatePay,
   formatCurrency,
   formatWeekLabel,
@@ -91,7 +92,7 @@ export default function PayTab({ jobs }) {
       skid_steer_hours: formSkidHours,
       soil_samples: formSoil,
       notes: formNotes,
-      operator: "Tate Anderson",
+      operator: OPERATOR_NAME,
       quality_approved: true,
     });
     setFormTanks(0);
