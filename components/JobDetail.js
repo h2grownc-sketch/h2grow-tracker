@@ -5,6 +5,7 @@ import ProgressBar from "./ProgressBar";
 import CheckItem from "./CheckItem";
 import {
   SERVICE_TYPES,
+  HYDRO_TYPES,
   LEAD_SOURCES,
   DEAD_REASONS,
   ESTIMATE_STATUSES,
@@ -298,6 +299,20 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
           {/* Hydro-specific: Site Prep + Quotes + Soil */}
           {isHydro(form.serviceType) && (
             <>
+              {/* Hydroseeding type */}
+              <div>
+                <label style={lbl}>Hydroseeding Type</label>
+                <select
+                  value={form.hydroType || ""}
+                  onChange={(e) => set("hydroType", e.target.value)}
+                >
+                  <option value="">—</option>
+                  {HYDRO_TYPES.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Toggle checkboxes */}
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 15, padding: "6px 0" }}>
