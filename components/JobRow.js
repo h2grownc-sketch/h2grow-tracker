@@ -42,9 +42,11 @@ export default function JobRow({ job, onSelect, onQuickAdvance, showDaysWaiting 
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onQuickAdvance(job, next.key);
+                onQuickAdvance(job, next.key, next.label);
               }}
               className="job-row-advance"
+              aria-label={"Mark done: " + next.label}
+              title={"Mark done: " + next.label}
             >
               ✓
             </button>

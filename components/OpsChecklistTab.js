@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProgressBar from "./ProgressBar";
+
+const STORAGE_KEY = "h2grow-ops-v1";
 
 const OPS_CHECKLISTS = [
   {title:"Daily — T120",items:["Grease pump seal (Finn 000698 ONLY)","Grease clutch lever bearings (2)","Grease agitator shaft bearings (2)","Grease discharge swivels (1)","Grease clutch release bearing","Check engine oil — Rotella T6","Check fuel level","End of day: flush, drain, wash, grease"]},
@@ -13,23 +15,52 @@ const OPS_CHECKLISTS = [
 
 export default function OpsChecklistTab() {
   const [checked, setChecked] = useState({});
+  const [resetAt, setResetAt] = useState(null);
+  const [opsLoaded, setOpsLoaded] = useState(false);
+
+  // Persist on this device — checked-off maintenance used to vanish on refresh
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved && typeof saved === "object") {
+        setChecked(saved.checked || {});
+        setResetAt(saved.resetAt || null);
+      }
+    } catch {}
+    setOpsLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!opsLoaded) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ checked, resetAt })); } catch {}
+  }, [checked, resetAt, opsLoaded]);
+
   const toggle = (li, ii) => {
     const k = li + "-" + ii;
     setChecked((p) => ({ ...p, [k]: !p[k] }));
   };
+  const resetAll = () => {
+    if (!confirm("Reset ALL checklists? This clears every checked item to start a new maintenance cycle.")) return;
+    setChecked({});
+    setResetAt(new Date().toISOString());
+  };
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <div style={{ fontFamily: "var(--heading-font)", fontSize: 20, fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>
           Ops Checklists
         </div>
         <button
-          onClick={() => setChecked({})}
-          style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", fontSize: 12, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px" }}
+          onClick={resetAll}
+          style={{ background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "8px 14px", fontSize: 12, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", minHeight: 36 }}
         >
           Reset All
         </button>
+      </div>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+        {resetAt
+          ? "Cycle started " + new Date(resetAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " — saved on this device"
+          : "Progress is saved on this device"}
       </div>
 
       {OPS_CHECKLISTS.map((list, li) => {

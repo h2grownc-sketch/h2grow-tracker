@@ -78,9 +78,25 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      set("photos", [...photos, ev.target.result].join("|||"));
+      // Downscale/compress before storing — raw phone photos are 3-10 MB and
+      // are saved into the job row itself, making saves and syncs crawl.
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1280;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        let out;
+        try { out = canvas.toDataURL("image/jpeg", 0.72); } catch { out = ev.target.result; }
+        set("photos", [...photos, out].join("|||"));
+      };
+      img.onerror = () => set("photos", [...photos, ev.target.result].join("|||"));
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
   const removePhoto = (idx) => {
     const p = [...photos];
@@ -226,18 +242,30 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
                   value={form.phone}
                   onChange={(e) => set("phone", e.target.value)}
                   placeholder="(919) 555-0000"
+                  type="tel"
+                  inputMode="tel"
                 />
               </div>
             </div>
           </div>
 
-          {/* Address */}
+          {/* Address + Email */}
           <div>
             <label style={lbl}>Street Address</label>
             <input
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
               placeholder="123 Main St"
+            />
+          </div>
+          <div>
+            <label style={lbl}>Email</label>
+            <input
+              value={form.email || ""}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="customer@email.com"
+              type="email"
+              inputMode="email"
             />
           </div>
 
@@ -329,12 +357,12 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
               <div style={{ display: "grid", gridTemplateColumns: form.requiresSitePrep ? "1fr 1fr" : "1fr", gap: 10 }}>
                 <div>
                   <label style={lbl}>Hydroseed Quote $</label>
-                  <input value={form.quoteAmount} onChange={(e) => set("quoteAmount", e.target.value)} placeholder="$0" />
+                  <input value={form.quoteAmount} onChange={(e) => set("quoteAmount", e.target.value)} placeholder="3500" inputMode="decimal" />
                 </div>
                 {form.requiresSitePrep && (
                   <div>
                     <label style={lbl}>Site Prep Quote $</label>
-                    <input value={form.sitePrepAmount || ""} onChange={(e) => set("sitePrepAmount", e.target.value)} placeholder="$0" />
+                    <input value={form.sitePrepAmount || ""} onChange={(e) => set("sitePrepAmount", e.target.value)} placeholder="1500" inputMode="decimal" />
                   </div>
                 )}
               </div>
@@ -376,7 +404,8 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
                 <input
                   value={form.quoteAmount}
                   onChange={(e) => set("quoteAmount", e.target.value)}
-                  placeholder="$0"
+                  placeholder="1500"
+                  inputMode="decimal"
                 />
               </div>
               <div>
@@ -630,7 +659,8 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
           {job.id !== "NEW" && (
             <button
               onClick={() => {
-                if (confirm("Delete permanently?")) onDelete(job.id);
+                if (confirm(`PERMANENTLY delete ${form.customerName || "this job"} and all its history?\n\nThis cannot be undone. If the customer backed out, use "Mark as dead / lost" instead — it keeps the record.`))
+                  onDelete(job.id);
               }}
               disabled={saving}
               style={{

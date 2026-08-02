@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+
+const STORAGE_KEY = "h2grow-materials-v1";
 
 const DEFAULT_MATERIALS = [
-  {id:"wood_fiber",name:"Wood Fiber Mulch (Profile)",unit:"bale",costPerUnit:0,balesPerTank:9,lbsPerBale:50,category:"Mulch"},
-  {id:"flexterra",name:"Flexterra HP-FGM (Profile)",unit:"bale",costPerUnit:0,balesPerTank:8,lbsPerBale:50,category:"Mulch"},
-  {id:"biotic_earth",name:"Biotic Earth Black BSA (Verdyol)",unit:"bale",costPerUnit:0,balesPerTank:15,lbsPerBale:50,category:"Mulch"},
+  {id:"wood_fiber",name:"Wood Fiber Mulch (Profile)",unit:"bale",costPerUnit:0,balesPerTank:9,lbsPerBale:50,sqftPerTank:10000,category:"Mulch"},
+  {id:"flexterra",name:"Flexterra HP-FGM (Profile)",unit:"bale",costPerUnit:0,balesPerTank:8,lbsPerBale:50,sqftPerTank:5500,category:"Mulch"},
+  {id:"biotic_earth",name:"Biotic Earth Black BSA (Verdyol)",unit:"bale",costPerUnit:0,balesPerTank:15,lbsPerBale:50,sqftPerTank:9000,category:"Mulch"},
   {id:"fert_starter",name:"18-24-12 Starter Fertilizer",unit:"bag",costPerUnit:0,bagsPerTank:1,category:"Fertilizer"},
   {id:"fert_balanced",name:"10-10-10 Slow Release",unit:"bag",costPerUnit:0,bagsPerTank:1,category:"Fertilizer"},
   {id:"neutralime",name:"NeutraLime",unit:"lb",costPerUnit:0,lbsPerTank:20,category:"pH Correction"},
@@ -22,6 +24,21 @@ const lbl = { fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppe
 
 export default function MaterialsCalc() {
   const [materials, setMaterials] = useState(DEFAULT_MATERIALS);
+  const [matsLoaded, setMatsLoaded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Persist the material list on this device — costs typed here used to vanish on refresh
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (Array.isArray(saved) && saved.length) setMaterials(saved);
+    } catch {}
+    setMatsLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!matsLoaded) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(materials)); } catch {}
+  }, [materials, matsLoaded]);
   const [sqft, setSqft] = useState("");
   const [mulchType, setMulchType] = useState("wood_fiber");
   const [seedType, setSeedType] = useState("seed_tall_fescue");
@@ -29,7 +46,7 @@ export default function MaterialsCalc() {
   const [newMat, setNewMat] = useState({ name: "", unit: "bale", costPerUnit: 0, category: "Other", balesPerTank: 0, lbsPerBale: 0, lbsPerKSqFt: 0, lbsPerTank: 0, bagsPerTank: 0, jugsPerAcre: 0 });
 
   const updateField = (id, field, value) => {
-    setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, [field]: ["costPerUnit", "balesPerTank", "lbsPerBale", "lbsPerKSqFt", "lbsPerTank", "bagsPerTank", "jugsPerAcre"].includes(field) ? parseFloat(value) || 0 : value } : m));
+    setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, [field]: ["costPerUnit", "balesPerTank", "lbsPerBale", "lbsPerKSqFt", "lbsPerTank", "bagsPerTank", "jugsPerAcre", "sqftPerTank"].includes(field) ? parseFloat(value) || 0 : value } : m));
   };
   const removeMaterial = (id) => { if (confirm("Remove this material?")) setMaterials((prev) => prev.filter((m) => m.id !== id)); };
   const addMaterial = () => {
@@ -45,7 +62,7 @@ export default function MaterialsCalc() {
   const acres = area / 43560;
   const mulch = materials.find((m) => m.id === mulchType);
   const seed = materials.find((m) => m.id === seedType);
-  const tanks = mulch ? Math.ceil(area / (mulch.id === "wood_fiber" ? 10000 : mulch.id === "flexterra" ? 5500 : 9000)) : 0;
+  const tanks = mulch ? Math.ceil(area / (mulch.sqftPerTank || 9000)) : 0;
   const bales = mulch ? tanks * (mulch.balesPerTank || 0) : 0;
   const seedLbs = seed ? (area / 1000) * (seed.lbsPerKSqFt || 8) : 0;
   const fert = materials.find((m) => m.id === "fert_starter");
@@ -94,9 +111,15 @@ export default function MaterialsCalc() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <div><label style={{ ...lbl, fontSize: 10 }}>Unit</label><select value={m.unit} onChange={(e) => updateField(m.id, "unit", e.target.value)} style={{ padding: "6px 8px", fontSize: 13 }}><option value="bale">bale</option><option value="bag">bag</option><option value="lb">lb</option><option value="ton">ton</option><option value="jug (3 lb)">jug (3 lb)</option><option value="gallon">gallon</option><option value="test">test</option><option value="each">each</option></select></div>
-                    <div><label style={{ ...lbl, fontSize: 10 }}>Cost/Unit</label><input value={m.costPerUnit || ""} onChange={(e) => updateField(m.id, "costPerUnit", e.target.value)} placeholder="$0" type="number" style={{ padding: "6px 8px", fontSize: 13 }} /></div>
+                    <div><label style={{ ...lbl, fontSize: 10 }}>Cost/Unit</label><input value={m.costPerUnit || ""} onChange={(e) => updateField(m.id, "costPerUnit", e.target.value)} placeholder="$0" type="number" inputMode="decimal" style={{ padding: "6px 8px", fontSize: 13 }} /></div>
                     <div><label style={{ ...lbl, fontSize: 10 }}>Category</label><select value={m.category} onChange={(e) => updateField(m.id, "category", e.target.value)} style={{ padding: "6px 8px", fontSize: 13 }}><option>Mulch</option><option>Fertilizer</option><option>pH Correction</option><option>Additives</option><option>Seed</option><option>Service</option><option>Other</option></select></div>
                   </div>
+                  {m.category === "Mulch" && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+                      <div><label style={{ ...lbl, fontSize: 10 }}>SqFt/Tank</label><input value={m.sqftPerTank || ""} onChange={(e) => updateField(m.id, "sqftPerTank", e.target.value)} placeholder="9000" type="number" inputMode="numeric" style={{ padding: "6px 8px", fontSize: 13 }} /></div>
+                      <div><label style={{ ...lbl, fontSize: 10 }}>Bales/Tank</label><input value={m.balesPerTank || ""} onChange={(e) => updateField(m.id, "balesPerTank", e.target.value)} placeholder="9" type="number" inputMode="numeric" style={{ padding: "6px 8px", fontSize: 13 }} /></div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -163,13 +186,19 @@ export default function MaterialsCalc() {
                   {lineItems.filter((l) => l.qty > 0).map((l, i) => <div key={i}>{l.name}: <b>{l.qty} {l.unit}</b></div>)}
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const txt = `MATERIAL ORDER — H2 Grow LLC\n${new Date().toLocaleDateString()}\n${area.toLocaleString()} sq ft (${tanks} tanks)\n\n${lineItems.filter((l) => l.qty > 0).map((l) => `${l.name}: ${l.qty} ${l.unit}`).join("\n")}\n\nPlease confirm availability.\nMatt Fleetwood | 984-343-2424`;
-                    navigator.clipboard?.writeText(txt);
+                    try {
+                      await navigator.clipboard.writeText(txt);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch {
+                      alert(txt); // clipboard unavailable — show the order so it can be copied manually
+                    }
                   }}
-                  style={{ width: "100%", padding: "10px 0", borderRadius: 6, border: "none", background: "linear-gradient(135deg,#4CAF50,#5CBF2A)", color: "#fff", fontWeight: 600, fontSize: 13, letterSpacing: "1px", textTransform: "uppercase" }}
+                  style={{ width: "100%", padding: "10px 0", borderRadius: 6, border: "none", background: copied ? "#2E7D32" : "linear-gradient(135deg,#4CAF50,#5CBF2A)", color: "#fff", fontWeight: 600, fontSize: 13, letterSpacing: "1px", textTransform: "uppercase" }}
                 >
-                  Copy Order to Clipboard
+                  {copied ? "Copied ✓" : "Copy Order to Clipboard"}
                 </button>
               </div>
             </div>

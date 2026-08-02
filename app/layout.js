@@ -4,8 +4,14 @@ export const metadata = {
   title: 'H2 Grow Job Tracker',
   description: 'Job tracking dashboard for H2 Grow LLC',
   manifest: '/manifest.json',
+}
+
+// Next 14 wants these in a viewport export. Pinch-zoom is intentionally
+// allowed now (WCAG) — maximum-scale/user-scalable=no blocked low-vision users.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: '#141414',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
 }
 
 export default function RootLayout({ children }) {

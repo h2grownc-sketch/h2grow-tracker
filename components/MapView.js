@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getStage, getNextAction, getAlertMsg, isJobDone, soilFlag } from "../lib/jobUtils";
+import { getStage, getNextAction, getAlertMsg, isJobDone, soilFlag, SERVICE_TYPES } from "../lib/jobUtils";
+
+// Escape user-entered text before injecting into Leaflet popup HTML
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 // ── NC City coordinates (50+ cities) ──
 const NC_CITIES = {
@@ -81,7 +86,7 @@ let leafletPromise = null;
 function loadLeaflet() {
   if (leafletLoaded && window.L) return Promise.resolve(window.L);
   if (leafletPromise) return leafletPromise;
-  leafletPromise = new Promise((resolve) => {
+  leafletPromise = new Promise((resolve, reject) => {
     // CSS
     if (!document.querySelector('link[href*="leaflet"]')) {
       const css = document.createElement("link");
@@ -94,13 +99,14 @@ function loadLeaflet() {
     const script = document.createElement("script");
     script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
     script.onload = () => { leafletLoaded = true; resolve(window.L); };
+    script.onerror = () => { leafletPromise = null; reject(new Error("Leaflet CDN unreachable")); };
     document.head.appendChild(script);
   });
   return leafletPromise;
 }
 
 // ── Filter options ──
-const SERVICES = ["All","Hydroseeding","Forestry Mulching","Site Prep / Grading","Drainage","Erosion Control","Food Plot","Skid Steer Work","Other"];
+const SERVICES = ["All", ...SERVICE_TYPES];
 const STAGES = ["All","New Lead","Contacted","Consultation","Consulted","Sampling","Awaiting Results","Quoting","Quote Sent","Approved","Job Day","Follow-Up"];
 
 export default function MapView({ jobs, onSelect }) {
@@ -108,6 +114,7 @@ export default function MapView({ jobs, onSelect }) {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef({});
   const [leafletReady, setLeafletReady] = useState(false);
+  const [leafletError, setLeafletError] = useState(false);
   const [serviceFilter, setServiceFilter] = useState("All");
   const [stageFilter, setStageFilter] = useState("All");
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
@@ -116,7 +123,7 @@ export default function MapView({ jobs, onSelect }) {
 
   // Load Leaflet on mount
   useEffect(() => {
-    loadLeaflet().then(() => setLeafletReady(true));
+    loadLeaflet().then(() => setLeafletReady(true)).catch(() => setLeafletError(true));
   }, []);
 
   // Active (non-dead, non-done) jobs with geocoding
@@ -173,13 +180,13 @@ export default function MapView({ jobs, onSelect }) {
 
       const popup = `
         <div style="font-family:sans-serif;min-width:180px">
-          <div style="font-weight:700;font-size:14px;text-transform:uppercase;margin-bottom:4px">${(j.customerName || "").replace(/"/g, "&quot;")}</div>
-          <div style="font-size:12px;color:#555;margin-bottom:2px">${j.serviceType || ""} ${j.city ? "— " + j.city : ""}</div>
-          <div style="font-size:12px;color:${st.color};font-weight:600;margin-bottom:2px">${st.label}</div>
-          ${j.assignedTo ? `<div style="font-size:11px;color:#5BA3D1">Assigned: ${j.assignedTo}</div>` : ""}
-          ${next ? `<div style="font-size:11px;color:#C48A08;margin-top:3px">Next: ${next.label}</div>` : ""}
+          <div style="font-weight:700;font-size:14px;text-transform:uppercase;margin-bottom:4px">${esc(j.customerName)}</div>
+          <div style="font-size:12px;color:#555;margin-bottom:2px">${esc(j.serviceType)} ${j.city ? "— " + esc(j.city) : ""}</div>
+          <div style="font-size:12px;color:${st.color};font-weight:600;margin-bottom:2px">${esc(st.label)}</div>
+          ${j.assignedTo ? `<div style="font-size:11px;color:#5BA3D1">Assigned: ${esc(j.assignedTo)}</div>` : ""}
+          ${next ? `<div style="font-size:11px;color:#C48A08;margin-top:3px">Next: ${esc(next.label)}</div>` : ""}
           ${ready ? `<div style="font-size:11px;color:#4CAF50;font-weight:600">Ready to schedule</div>` : ""}
-          ${alert ? `<div style="font-size:11px;color:#D64545;font-weight:600;margin-top:2px">${alert}</div>` : ""}
+          ${alert ? `<div style="font-size:11px;color:#D64545;font-weight:600;margin-top:2px">${esc(alert)}</div>` : ""}
         </div>
       `;
 
@@ -257,8 +264,10 @@ export default function MapView({ jobs, onSelect }) {
       {/* Map */}
       <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--card-border)", height: 380, marginBottom: 12, background: "#E8E8E4", position: "relative" }}>
         {!leafletReady && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14 }}>
-            Loading map...
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: leafletError ? "var(--danger)" : "var(--text-muted)", fontSize: 14, textAlign: "center", padding: 16 }}>
+            {leafletError
+              ? "Map failed to load — no internet, or the map service is unreachable. The job list below still works."
+              : "Loading map..."}
           </div>
         )}
         <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
