@@ -73,29 +73,40 @@ async function testConnection() {
 }
 
 function getCreateTableSQL() {
+  // snake_case — MUST match lib/supabase.js field mapping. (An earlier version
+  // of this SQL used camelCase columns, which the app cannot read or write.)
   return `
--- H2 Grow Jobs table — camelCase columns to match existing app code
-CREATE TABLE jobs (
+-- H2 Grow Jobs table — snake_case columns, matches lib/supabase.js
+CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
-  "customerName" TEXT NOT NULL DEFAULT '',
+  customer_name TEXT NOT NULL DEFAULT '',
   phone TEXT DEFAULT '',
   email TEXT DEFAULT '',
   address TEXT DEFAULT '',
-  "serviceType" TEXT DEFAULT '',
+  city TEXT DEFAULT '',
+  state TEXT DEFAULT '',
+  service_type TEXT DEFAULT '',
+  hydro_type TEXT DEFAULT '',
   sqft TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   source TEXT DEFAULT '',
-  "dateCreated" TEXT DEFAULT '',
-  "quoteSentDate" TEXT DEFAULT '',
-  "scheduledDate" TEXT DEFAULT '',
-  "sprayDate" TEXT DEFAULT '',
-  "sampleMailedDate" TEXT DEFAULT '',
-  "quoteAmount" TEXT DEFAULT '',
-  "soilTestNumber" TEXT DEFAULT '',
+  date_created TEXT DEFAULT '',
+  quote_sent_date TEXT DEFAULT '',
+  scheduled_date TEXT DEFAULT '',
+  spray_date TEXT DEFAULT '',
+  sample_mailed_date TEXT DEFAULT '',
+  quote_amount TEXT DEFAULT '',
+  site_prep_amount TEXT DEFAULT '',
+  soil_test_number TEXT DEFAULT '',
   checks JSONB DEFAULT '{}',
   county TEXT DEFAULT '',
-  "assignedTo" TEXT DEFAULT '',
-  "estimateStatus" TEXT DEFAULT '',
+  assigned_to TEXT DEFAULT '',
+  estimate_status TEXT DEFAULT '',
+  require_site_prep BOOLEAN DEFAULT false,
+  soil_samples_required BOOLEAN DEFAULT true,
+  is_dead BOOLEAN DEFAULT false,
+  dead_reason TEXT DEFAULT '',
+  photos TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -103,7 +114,9 @@ CREATE TABLE jobs (
 -- Enable Row Level Security
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 
--- Allow all access (PIN auth is app-level)
+-- Allow all access (PIN auth is app-level).
+-- SECURITY NOTE: lock this down per docs/SECURITY_UPGRADE.md when Supabase
+-- Auth is enabled (NEXT_PUBLIC_USE_AUTH=true).
 CREATE POLICY "Allow all access" ON jobs FOR ALL USING (true) WITH CHECK (true);
 
 -- Auto-update timestamp
@@ -116,9 +129,9 @@ CREATE TRIGGER jobs_updated_at BEFORE UPDATE ON jobs
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Indexes
-CREATE INDEX idx_jobs_date_created ON jobs("dateCreated");
-CREATE INDEX idx_jobs_scheduled_date ON jobs("scheduledDate");
-CREATE INDEX idx_jobs_service_type ON jobs("serviceType");
+CREATE INDEX idx_jobs_date_created ON jobs(date_created);
+CREATE INDEX idx_jobs_scheduled_date ON jobs(scheduled_date);
+CREATE INDEX idx_jobs_service_type ON jobs(service_type);
   `.trim();
 }
 

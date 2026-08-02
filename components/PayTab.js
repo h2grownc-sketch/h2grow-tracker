@@ -85,7 +85,7 @@ export default function PayTab({ jobs }) {
   const handleSave = async () => {
     if (formTanks === 0 && formSkidHours === 0 && formSoil === 0) return;
     setSaving(true);
-    await saveProductionLog({
+    const ok = await saveProductionLog({
       log_date: formDate,
       job_id: formJobId || null,
       tanks_sprayed: formTanks,
@@ -95,6 +95,11 @@ export default function PayTab({ jobs }) {
       operator: OPERATOR_NAME,
       quality_approved: true,
     });
+    if (!ok) {
+      setSaving(false);
+      alert("SAVE FAILED — could not reach the database. Your entry is still in the form; check your connection and tap Log Production again.");
+      return;
+    }
     setFormTanks(0);
     setFormSkidHours(0);
     setFormSoil(0);

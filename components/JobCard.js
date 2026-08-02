@@ -100,9 +100,11 @@ export default function JobCard({ job, onSelect, onQuickAdvance }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onQuickAdvance(job, next.key);
+                  onQuickAdvance(job, next.key, next.label);
                 }}
                 className="jc-advance"
+                aria-label={"Mark done: " + next.label}
+                title={"Mark done: " + next.label}
               >
                 ✓
               </button>

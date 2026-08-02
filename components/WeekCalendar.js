@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { getWeekStart } from "../lib/payUtils";
 
 export default function WeekCalendar({ jobs, onSelect }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+  // getWeekStart handles Sunday correctly (previous local math showed NEXT week on Sundays)
+  const startOfWeek = new Date(getWeekStart(new Date()) + "T00:00:00");
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = new Date(startOfWeek);
   weekStart.setDate(weekStart.getDate() + weekOffset * 7);
