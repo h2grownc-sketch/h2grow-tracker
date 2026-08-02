@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { usernameToEmail } from "../lib/auth";
 
-// Real login via Supabase Auth. Rendered instead of the PIN screen when
+// Real login via Supabase Auth, keyed by username (mapped to a synthetic
+// email internally). Rendered instead of the PIN screen when
 // NEXT_PUBLIC_USE_AUTH=true. Setup steps: docs/SECURITY_UPGRADE.md.
+// onAuthed receives the session so the app can read the user's role.
 export default function AuthGate({ onAuthed }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -15,11 +18,11 @@ export default function AuthGate({ onAuthed }) {
   useEffect(() => {
     if (!supabase) { setChecking(false); return; }
     supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) onAuthed();
+      if (data?.session) onAuthed(data.session);
       setChecking(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) onAuthed();
+      if (session) onAuthed(session);
     });
     return () => sub?.subscription?.unsubscribe();
   }, [onAuthed]);
@@ -28,9 +31,12 @@ export default function AuthGate({ onAuthed }) {
     if (!supabase) { setError("Database not configured"); return; }
     setBusy(true);
     setError("");
-    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password,
+    });
     setBusy(false);
-    if (err) setError(err.message === "Invalid login credentials" ? "Wrong email or password" : err.message);
+    if (err) setError(err.message === "Invalid login credentials" ? "Wrong username or password" : err.message);
   };
 
   return (
@@ -45,13 +51,13 @@ export default function AuthGate({ onAuthed }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 320 }}>
             <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              type="email"
-              inputMode="email"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              autoCapitalize="none"
+              autoCorrect="off"
               autoComplete="username"
-              aria-label="Email"
+              aria-label="Username"
             />
             <input
               value={password}
@@ -68,7 +74,7 @@ export default function AuthGate({ onAuthed }) {
             )}
             <button
               onClick={signIn}
-              disabled={busy || !email || !password}
+              disabled={busy || !username || !password}
               style={{
                 padding: "13px 0",
                 borderRadius: 8,

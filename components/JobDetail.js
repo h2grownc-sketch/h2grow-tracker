@@ -16,7 +16,7 @@ import {
   jobLocation,
 } from "../lib/jobUtils";
 
-export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJobs }) {
+export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJobs, canDelete = true }) {
   const [form, setForm] = useState(JSON.parse(JSON.stringify(job)));
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setCheck = (k, v) =>
@@ -656,7 +656,7 @@ export default function JobDetail({ job, onSave, onDelete, onClose, saving, allJ
           >
             {saving ? "Saving..." : "Save"}
           </button>
-          {job.id !== "NEW" && (
+          {job.id !== "NEW" && canDelete && (
             <button
               onClick={() => {
                 if (confirm(`PERMANENTLY delete ${form.customerName || "this job"} and all its history?\n\nThis cannot be undone. If the customer backed out, use "Mark as dead / lost" instead — it keeps the record.`))
