@@ -24,7 +24,7 @@ import WeekCalendar from "../components/WeekCalendar";
 import FilterBar from "../components/FilterBar";
 import CommandCenter from "../components/CommandCenter";
 import MapView from "../components/MapView";
-import MaterialsCalc from "../components/MaterialsCalc";
+import EstimatorTab from "../components/EstimatorTab";
 import QuickRefTab from "../components/QuickRefTab";
 import OpsChecklistTab from "../components/OpsChecklistTab";
 import PayTab from "../components/PayTab";
@@ -596,7 +596,15 @@ export default function Dashboard() {
         {view === "schedule" && <WeekCalendar jobs={jobs} onSelect={setEditing} />}
 
         {view === "map" && <MapView jobs={jobs} onSelect={setEditing} />}
-        {view === "calc" && <MaterialsCalc />}
+        {view === "calc" && (
+          <EstimatorTab
+            jobs={jobs}
+            onApplyToJob={(jobId, price) => {
+              const j = jobs.find((x) => x.id === jobId);
+              if (j) handleSave({ ...j, quoteAmount: String(price) });
+            }}
+          />
+        )}
         {view === "ref" && <QuickRefTab />}
         {view === "ops" && <OpsChecklistTab />}
         {view === "pay" && <PayTab jobs={jobs} />}
